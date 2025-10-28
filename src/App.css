@@ -1,0 +1,103 @@
+/* src/App.css */
+
+.main-title {
+    color: #4A90E2; /* Azul de Confiança */
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2.5rem;
+}
+
+.cards-container {
+    display: flex;
+    justify-content: center;
+    gap: 30px; /* Espaço entre os cards */
+    width: 100%;
+}
+
+/* --- ESTILOS DO CARD DA ESQUERDA (SURDO -> OUVINTE) --- */
+
+.video-placeholder {
+    height: 300px; /* Altura do vídeo */
+    background-color: #3b82f640; /* Um azul mais claro para indicar a área de vídeo */
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #4A90E2;
+    font-weight: 500;
+    border: 2px dashed #4A90E2;
+}
+
+.result-area {
+    padding: 10px;
+    background-color: white; /* Destaque para o resultado */
+    border-radius: 8px;
+    border: 1px solid #E5E7EB;
+    flex-grow: 1;
+}
+
+.result-text {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #4A90E2;
+    font-weight: 600;
+}
+
+/* --- ESTILOS DO CARD DA DIREITA (OUVINTE -> SURDO) --- */
+
+.input-textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid #81E6D9; /* Borda turquesa (frescor/acolhimento) */
+    font-size: 1rem;
+    resize: vertical;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.translate-button {
+    background-color: #4A90E2; /* Botão de Ação (Azul) */
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    transition: background-color 0.2s;
+    width: 100%;
+}
+
+.translate-button:hover {
+    background-color: #3B82F6; /* Um azul um pouco mais escuro ao passar o mouse */
+}
+
+.vlibras-placeholder {
+    height: 250px; /* Altura do VLibras */
+    background-color: #81E6D940; /* Turquesa suave para indicar a área do widget */
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #4A90E2;
+    font-weight: 500;
+    border: 2px dashed #81E6D9;
+    flex-grow: 1;
+}
+
+
+/* --- MEDIA QUERIES (RESPONSIVIDADE) --- */
+
+@media (max-width: 900px) {
+    .cards-container {
+        flex-direction: column; /* Empilha os cards em telas menores */
+        gap: 20px;
+    }
+
+    .main-title {
+        font-size: 2rem;
+    }
+}
