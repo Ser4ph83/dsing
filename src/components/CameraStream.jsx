@@ -1,76 +1,66 @@
-// src/components/CameraStream.jsx
-import React, { useRef, useEffect, useState } from 'react';
-import './CameraStream.css'; // Vamos criar um CSS para ele
+import React, { useRef, useEffect, useState, forwardRef } from 'react'; 
+import './CameraStream.css'; 
 
-const CameraStream = () => {
-  // 1. Usamos useRef para referenciar diretamente o elemento <video> no DOM.
-  const videoRef = useRef(null);
-
-  // 2. Usamos useState para gerenciar erros e feedback para o usuário.
+// Use forwardRef para receber a ref do pai (App.jsx)
+const CameraStream = forwardRef((props, ref) => { 
+  
   const [error, setError] = useState(null);
+  // NOVO: Usamos uma ref interna para armazenar o objeto MediaStream
+  const mediaStreamRef = useRef(null); 
 
   useEffect(() => {
-    // Função assíncrona para iniciar o stream da câmera
     const startCamera = async () => {
-      // 1. Verifica se o navegador suporta a API de mídia
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setError('Seu navegador não suporta acesso à câmera.');
-        return;
-      }
+      setError(null);
 
       try {
-        // 2. Tenta obter o stream de vídeo
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true, // Solicita acesso ao vídeo
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        
+        // Guarda o stream na ref interna para poder pará-lo depois
+        mediaStreamRef.current = stream; 
 
-        // 3. Conecta o stream ao elemento <video>
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          // O play() deve ser chamado após o carregamento do metadata
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
+        // Conecta o stream ao elemento <video> via ref passada pelo App.jsx
+        if (ref.current) { 
+          ref.current.srcObject = stream;
+          ref.current.onloadedmetadata = () => {
+            ref.current.play();
           };
         }
       } catch (err) {
-        // 4. Trata erros como permissão negada
         console.error("Erro ao acessar a câmera:", err);
-        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          setError('Permissão de acesso à câmera negada. Verifique as configurações do seu navegador.');
-        } else if (err.name === 'NotFoundError') {
-          setError('Nenhuma câmera encontrada no dispositivo.');
-        } else {
-          setError(`Ocorreu um erro: ${err.message}`);
-        }
+        setError('Acesso à câmera negado ou indisponível.');
       }
     };
 
     startCamera();
 
-    // 5. Cleanup Function: Para parar o stream ao desmontar o componente
+    // FUNÇÃO DE LIMPEZA CRÍTICA:
+    // Esta função é executada quando o componente CameraStream é desmontado (quando isCameraOn muda para false)
     return () => {
-      const stream = videoRef.current ? videoRef.current.srcObject : null;
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      const currentStream = mediaStreamRef.current;
+      if (currentStream) {
+        // Itera sobre todas as trilhas (vídeo, áudio) e as encerra
+        currentStream.getTracks().forEach(track => {
+          track.stop();
+          console.log(`Trilha de mídia ${track.kind} parada.`);
+        });
+        mediaStreamRef.current = null; // Limpa a referência
+        console.log("Câmera desligada (LED deve apagar).");
       }
     };
-  }, []); // O array vazio garante que o efeito rode apenas uma vez (ao montar)
+  }, [ref]); // Dependências: Roda na montagem e se a ref mudar (improvável)
 
   return (
     <div className="camera-container">
       {error ? (
-        // Exibe a mensagem de erro se houver
         <div className="camera-error">
           <p>⚠️ {error}</p>
         </div>
       ) : (
-        // Elemento <video> onde o stream será exibido
-        // A propriedade 'autoPlay' é redundante aqui, mas ajuda.
-        // 'playsInline' é crucial para dispositivos móveis.
-        <video ref={videoRef} autoPlay playsInline className="video-element" />
+        // O elemento <video> usa a ref passada pelo pai
+        <video ref={ref} autoPlay playsInline muted className="video-element" /> 
       )}
     </div>
   );
-};
+}); 
 
 export default CameraStream;

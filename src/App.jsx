@@ -1,51 +1,47 @@
-// src/App.jsx
-import React, { useState } from 'react'; // Importe useState
+import React, { useState, useRef, useCallback } from 'react';
 import CameraStream from './components/CameraStream';
 import Card from './components/Card';
+import DatilologiaProcessor from './components/DatilologiaProcessor';
 import './App.css';
 
 function App() {
-  // 1. STATE para o texto do ouvinte
+  // --- Estados e Referências ---
   const [inputText, setInputText] = useState('');
+  const [recognizedText, setRecognizedText] = useState('');
+  const videoRef = useRef(null); 
+  const [isCameraOn, setIsCameraOn] = useState(false); 
 
-  // 2. Função para lidar com a tradução
+  // --- Funções de Lógica ---
+  
+  const appendRecognizedChar = useCallback((char) => {
+    setRecognizedText(prevText => prevText + char);
+  }, []); 
+
+  const handleClearText = () => {
+    setRecognizedText('');
+  };
+  
+  const toggleCamera = () => {
+      setIsCameraOn(prev => !prev);
+      if (isCameraOn) { 
+          setRecognizedText('');
+      }
+  };
+
   const handleTranslate = () => {
     if (inputText.trim() === '') {
-      alert('Por favor, digite um texto para traduzir.');
+      console.error('Por favor, digite um texto para traduzir.'); 
       return;
     }
 
-    // A mágica: Usamos a API JavaScript do VLibras
-    // window.accessibility é o objeto global criado pelo script do VLibras
     if (window.accessibility && window.accessibility.sendContent) {
-      
-      console.log('VLibras API detectada. Tentando tradução...');
+      console.log('VLibras acionado para ler o conteúdo da textarea.');
+      window.accessibility.sendContent('textarea-vlibras');
 
-      const contentId = 'vlibras-content-' + Date.now();
-      
-      // Cria o elemento temporário
-      const tempElement = document.createElement('span');
-      tempElement.id = contentId;
-      tempElement.textContent = inputText;
-      tempElement.style.display = 'none'; 
-      document.body.appendChild(tempElement);
-      
-      // Envia o comando
-      window.accessibility.sendContent(contentId);
-
-      // Limpa o elemento
-      setTimeout(() => {
-          document.getElementById(contentId)?.remove();
-          console.log(`Elemento temporário ${contentId} removido.`);
-      }, 500); // Aumentei o tempo para 500ms para garantir a leitura em ambientes mais lentos
-      
-  } else {
-      // Mensagem mais clara sobre como ativar
-      alert('⚠️ O widget VLibras precisa ser ativado primeiro! Clique no ícone de acessibilidade (bonequinho) no canto da tela para iniciar o VLibras.');
-      console.error('VLibras API (window.accessibility) não está disponível. Usuário precisa ativar o widget.');
-  }
-};
-
+    } else {
+      console.error('⚠️ O widget VLibras precisa ser ATIVADO primeiro (clique no ícone no canto).');
+    }
+  };
 
   return (
     <>
@@ -55,14 +51,52 @@ function App() {
       
       <div className="cards-container">
         
-        {/* Card da Esquerda (Sem alteração) */}
+        {/* Card da Esquerda: Surdo -> Ouvinte (Datilologia) */}
         <Card title="Surdo-Ouvinte (Datilologia para Texto)">
-          <div className="video-placeholder"> 
-            <CameraStream /> 
-          </div> 
-          <div className="result-area">
-            <p className="result-text">Texto reconhecido aparecerá aqui...</p>
-          </div>
+            
+            {/* BOTÃO DE CONTROLE DA CÂMERA */}
+            <div className="camera-control-row">
+                <button 
+                    className={isCameraOn ? "camera-off-button" : "camera-on-button"}
+                    onClick={toggleCamera}
+                >
+                    {isCameraOn ? '🔴 Desligar Câmera' : '🟢 Ligar Câmera'}
+                </button>
+            </div>
+            
+            <div className="video-placeholder"> 
+                {isCameraOn ? (
+                    // Câmera é MONTADA/DESMONTADA aqui, disparando a limpeza do stream
+                    <CameraStream ref={videoRef} /> 
+                ) : (
+                    <div className="camera-off-message">
+                        <p>Câmera Desligada. Pressione "Ligar Câmera" para começar a sinalizar.</p>
+                    </div>
+                )}
+            </div> 
+            
+            {/* O Processador de Datilologia só é ativado quando a câmera está ligada */}
+            {isCameraOn && (
+                <DatilologiaProcessor 
+                    videoStreamRef={videoRef}
+                    onTextRecognized={appendRecognizedChar}
+                />
+            )}
+
+            {/* BOTÃO LIMPAR TEXTO */}
+            <div className="action-row">
+                <button 
+                    className="clear-button"
+                    onClick={handleClearText}
+                    disabled={recognizedText.length === 0}
+                >
+                    Limpar Texto
+                </button>
+            </div>
+            
+            <div className="result-area">
+                <p className="result-text">{recognizedText || "Texto reconhecido aparecerá aqui..."}</p>
+            </div>
         </Card>
         
         {/* Card da Direita: Ouvinte -> Surdo (VLibras) */}
@@ -70,21 +104,23 @@ function App() {
           
           <textarea 
             className="input-textarea"
+            id="textarea-vlibras"
             placeholder="Digite sua mensagem para tradução..."
             rows="5"
-            value={inputText} // Conecta o campo ao state
-            onChange={(e) => setInputText(e.target.value)} // Atualiza o state
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            data-vlibras
           ></textarea>
           
           <button 
-            className="translate-button"
-            onClick={handleTranslate} // Chama a função ao clicar
+            className="translate-button" 
+            onClick={handleTranslate} 
+            aria-hidden="true"
           >
             Traduzir para LIBRAS
           </button>
           
           <div className="vlibras-placeholder">
-            {/* O VLibras aparecerá no canto da tela. Esta div pode ser usada para um placeholder visual. */}
             <p>O avatar VLibras aparecerá no canto da tela.</p>
           </div>
         </Card>
