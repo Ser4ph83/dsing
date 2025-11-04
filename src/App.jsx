@@ -1,132 +1,107 @@
-import React, { useState, useRef, useCallback } from 'react';
-import CameraStream from './components/CameraStream';
-import Card from './components/Card';
-import DatilologiaProcessor from './components/DatilologiaProcessor';
-import './App.css';
+// src/App.jsx
+import React, { useEffect, useRef, useState } from "react";
+import MediapipeProcessor from "./components/MediapipeProcessor";
+import "./App.css";
 
 function App() {
-  // --- Estados e Referências ---
-  const [inputText, setInputText] = useState('');
-  const [recognizedText, setRecognizedText] = useState('');
-  const videoRef = useRef(null); 
-  const [isCameraOn, setIsCameraOn] = useState(false); 
+  const videoRef = useRef(null);
+  const [recognizedText, setRecognizedText] = useState("");
+  const [message, setMessage] = useState("Câmera desligada.");
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const streamRef = useRef(null);
 
-  // --- Funções de Lógica ---
-  
-  const appendRecognizedChar = useCallback((char) => {
-    setRecognizedText(prevText => prevText + char);
-  }, []); 
-
-  const handleClearText = () => {
-    setRecognizedText('');
-  };
-  
-  const toggleCamera = () => {
-      setIsCameraOn(prev => !prev);
-      if (isCameraOn) { 
-          setRecognizedText('');
+  // liga a câmera (cria stream)
+  const startCamera = async () => {
+    try {
+      if (streamRef.current) return;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "user" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
       }
-  };
-
-  const handleTranslate = () => {
-    if (inputText.trim() === '') {
-      console.error('Por favor, digite um texto para traduzir.'); 
-      return;
-    }
-
-    if (window.accessibility && window.accessibility.sendContent) {
-      console.log('VLibras acionado para ler o conteúdo da textarea.');
-      window.accessibility.sendContent('textarea-vlibras');
-
-    } else {
-      console.error('⚠️ O widget VLibras precisa ser ATIVADO primeiro (clique no ícone no canto).');
+      setIsCameraOn(true);
+      setMessage("Câmera ligada.");
+    } catch (err) {
+      console.error("Erro ao iniciar câmera:", err);
+      setMessage("Erro ao iniciar câmera. Verifique permissões.");
+      setIsCameraOn(false);
     }
   };
+
+  // desliga a câmera (para tracks)
+  const stopCamera = () => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
+    } catch (err) {
+      console.warn("Erro ao parar câmera:", err);
+    } finally {
+      setIsCameraOn(false);
+      setMessage("Câmera desligada.");
+    }
+  };
+
+  const toggleCamera = () => {
+    if (isCameraOn) stopCamera();
+    else startCamera();
+  };
+
+  // tenta recarregar o modelo salvo no indexedDB (se existir) — MediapipeProcessor também faz, mas mantemos status aqui
+  useEffect(() => {
+    setMessage(isCameraOn ? "Câmera ativa. Aguardando MediaPipe..." : "Câmera desligada.");
+  }, [isCameraOn]);
 
   return (
-    <>
-      <header>
-        <h1 className="main-title">🌟 DSign Tradutor de LIBRAS 🌟</h1>
-      </header>
-      
-      <div className="cards-container">
-        
-        {/* Card da Esquerda: Surdo -> Ouvinte (Datilologia) */}
-        <Card title="Surdo-Ouvinte (Datilologia para Texto)">
-            
-            {/* BOTÃO DE CONTROLE DA CÂMERA */}
-            <div className="camera-control-row">
-                <button 
-                    className={isCameraOn ? "camera-off-button" : "camera-on-button"}
-                    onClick={toggleCamera}
-                >
-                    {isCameraOn ? '🔴 Desligar Câmera' : '🟢 Ligar Câmera'}
-                </button>
-            </div>
-            
-            <div className="video-placeholder"> 
-                {isCameraOn ? (
-                    // Câmera é MONTADA/DESMONTADA aqui, disparando a limpeza do stream
-                    <CameraStream ref={videoRef} /> 
-                ) : (
-                    <div className="camera-off-message">
-                        <p>Câmera Desligada. Pressione "Ligar Câmera" para começar a sinalizar.</p>
-                    </div>
-                )}
-            </div> 
-            
-            {/* O Processador de Datilologia só é ativado quando a câmera está ligada */}
-            {isCameraOn && (
-                <DatilologiaProcessor 
-                    videoStreamRef={videoRef}
-                    onTextRecognized={appendRecognizedChar}
-                />
-            )}
-
-            {/* BOTÃO LIMPAR TEXTO */}
-            <div className="action-row">
-                <button 
-                    className="clear-button"
-                    onClick={handleClearText}
-                    disabled={recognizedText.length === 0}
-                >
-                    Limpar Texto
-                </button>
-            </div>
-            
-            <div className="result-area">
-                <p className="result-text">{recognizedText || "Texto reconhecido aparecerá aqui..."}</p>
-            </div>
-        </Card>
-        
-        {/* Card da Direita: Ouvinte -> Surdo (VLibras) */}
-        <Card title="Ouvinte-Surdo (Texto para LIBRAS)">
-          
-          <textarea 
-            className="input-textarea"
-            id="textarea-vlibras"
-            placeholder="Digite sua mensagem para tradução..."
-            rows="5"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            data-vlibras
-          ></textarea>
-          
-          <button 
-            className="translate-button" 
-            onClick={handleTranslate} 
-            aria-hidden="true"
-          >
-            Traduzir para LIBRAS
+    <div className="App">
+      <header className="app-header">
+        <h1>🤖 Tradutor Bilateral de LIBRAS</h1>
+        <div className="controls-row">
+          <button className="camera-toggle" onClick={toggleCamera}>
+            {isCameraOn ? "🔴 Desligar Câmera" : "🟢 Ligar Câmera"}
           </button>
-          
-          <div className="vlibras-placeholder">
-            <p>O avatar VLibras aparecerá no canto da tela.</p>
-          </div>
-        </Card>
-        
-      </div>
-    </>
+          <div className="status-inline">{message}</div>
+        </div>
+      </header>
+
+      {/* vídeo oculto (fonte para MediaPipe) */}
+      <video
+        ref={videoRef}
+        width="640"
+        height="480"
+        autoPlay
+        muted
+        playsInline
+        style={{ display: "none" }}
+      />
+
+      {/* Processador: só inicia quando a câmera estiver ligada */}
+      <MediapipeProcessor
+        videoStreamRef={videoRef}
+        isCameraOn={isCameraOn}
+        onTextRecognized={(txt) => setRecognizedText((prev) => prev + txt)}
+        onMessageUpdate={setMessage}
+      />
+
+      <main className="recognized-area">
+        <h2>📝 Texto reconhecido</h2>
+        <div className="recognized-box">{recognizedText || "Aguardando gesto..."}</div>
+        <div style={{ marginTop: 8 }}>
+          <button onClick={() => setRecognizedText("")} disabled={!recognizedText}>
+            ✖ Limpar texto
+          </button>
+        </div>
+      </main>
+    </div>
   );
 }
 

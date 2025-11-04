@@ -185,6 +185,59 @@ body{
     flex-grow: 1;
 }
 
+.App {
+    text-align: center;
+    font-family: "Segoe UI", sans-serif;
+    background-color: #f4f6f9;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  
+  .app-title {
+    color: #222;
+    margin-bottom: 10px;
+  }
+  
+  .recognized-container {
+    margin-top: 15px;
+  }
+  
+  .recognized-box {
+    display: inline-block;
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 20px;
+    min-width: 300px;
+    min-height: 50px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .status-msg {
+    margin-top: 15px;
+    color: #666;
+    font-size: 0.9em;
+  }
+
+  .recognized-box {
+    display: inline-block;
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 20px;
+    max-width: 90%;
+    min-height: 60px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #333;
+    overflow-x: hidden; /* ✅ evita rolagem lateral */
+    word-wrap: break-word; /* ✅ quebra linhas automaticamente */
+    white-space: pre-wrap;
+  }
+  
+
 
 /* --- MEDIA QUERIES (RESPONSIVIDADE) --- */
 

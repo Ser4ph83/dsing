@@ -4,7 +4,7 @@ import * as tmImage from '@teachablemachine/image';
 
 // Configurações e URLs dos Modelos
 const CAPTURE_INTERVAL = 500;
-const CONFIDENCE_THRESHOLD = 0.93;
+const CONFIDENCE_THRESHOLD = 0.95;
 const MAX_PREDICTIONS = 1;
 
 // NOVO: Lista de URLs dos modelos (mantenha a última '/' no final)
